@@ -1,90 +1,186 @@
-1. Requisitos Funcionais (RF)
-O que o sistema deve fazer.
+📞 CallQuality AI - Especificação Técnica do Projeto
 
-[RF001] Gestão de Usuários: O sistema deve permitir o cadastro de analistas e supervisores.
+Status: 🏗️ Em Arquitetura / Modelagem de Dados
 
-[RF002] Upload de Áudio: O sistema deve permitir o upload de arquivos de áudio (.mp3, .wav) associados a um analista.
+Versão: 1.0.0
 
-[RF003] Transcrição Automática (IA): O sistema deve converter o áudio em texto automaticamente utilizando API de Speech-to-Text.
+1. Visão Geral
 
-[RF004] Análise de Sentimento: O sistema deve identificar se o sentimento do cliente foi Positivo, Neutro ou Negativo.
+O CallQuality AI é uma plataforma Full Stack projetada para modernizar o setor de Quality Assurance (QA) em Call Centers. O sistema automatiza a avaliação de atendimentos telefônicos utilizando Inteligência Artificial Generativa, reduzindo o trabalho manual de supervisores e fornecendo feedbacks instantâneos e imparciais.
 
-[RF005] Avaliação Automática (IA): O sistema deve avaliar a transcrição com base nos critérios ativos e gerar uma nota preliminar.
+O diferencial técnico reside na arquitetura híbrida: a IA realiza a triagem massiva e a transcrição (Speech-to-Text), enquanto o supervisor humano atua na validação e no coaching da equipe.
 
-[RF006] Revisão Manual: O supervisor deve poder alterar a nota dada pela IA e adicionar observações manuais.
+2. Requisitos Funcionais (RF)
 
-[RF007] Dashboard de Desempenho: O sistema deve exibir gráficos com a evolução das notas dos analistas e os critérios com maior índice de erro.
+Funcionalidades que o sistema disponibiliza aos usuários.
 
-[RF008] Cadastro de Critérios: O supervisor deve poder criar/editar critérios de avaliação (ex: "Saudação", "Empatia") e seus pesos.
+🔐 Módulo 1: Gestão e Acesso
 
-2. Requisitos Não Funcionais (RNF)
-Como o sistema deve ser.
+ID
 
-[RNF001] Processamento Assíncrono: A transcrição e análise de IA devem ocorrer em segundo plano para não travar a interface do usuário.
+Requisito
 
-[RNF002] Armazenamento: Os arquivos de áudio não devem ser salvos no banco de dados, mas sim em um File System ou Object Storage (S3/MinIO), salvando apenas o link no banco.
+Descrição
 
-[RNF003] Segurança: As senhas devem ser armazenadas com hash (BCrypt).
+Ator
 
-[RNF004] Stack: Backend em Java (Spring Boot), Banco MySQL 8.0 (Docker).
+RF001
 
-3. Regras de Negócio (RN)
-As restrições do negócio.
+Autenticação e RBAC
 
-[RN001] Visibilidade: Analistas só podem ver suas próprias avaliações. Supervisores veem de todos.
+Login seguro via JWT com controle de acesso baseado em cargos (Admin, Supervisor, Analista).
 
-[RN002] Imutabilidade da IA: O texto transcrito pela IA não pode ser alterado, mas a avaliação (notas) pode ser corrigida pelo supervisor.
+Todos
 
-[RN003] Critérios Dinâmicos: Uma alteração em um critério de avaliação só afeta avaliações futuras, não altera o histórico passado.
+RF002
 
-[RN004] Pontuação: A nota final é uma média ponderada: (Soma das notas dos itens * peso) / Soma dos pesos.
+Gestão de Usuários
+
+Cadastro, edição e inativação de analistas e supervisores.
+
+Admin
+
+RF003
+
+Gestão de Critérios
+
+Interface para criar regras de avaliação dinâmicas (ex: "Empatia", "Script de Vendas") e definir seus pesos.
+
+Supervisor
+
+🎧 Módulo 2: Core & Processamento (Pipeline)
+
+ID
+
+Requisito
+
+Descrição
+
+Ator
+
+RF004
+
+Upload de Áudio
+
+Envio de arquivos .mp3 ou .wav associados a um analista específico. O sistema deve validar tamanho e formato.
+
+Supervisor
+
+RF005
+
+Transcrição (STT)
+
+Conversão automática do áudio em texto (Speech-to-Text) utilizando API de IA.
+
+Sistema (Auto)
+
+RF006
+
+Análise de Sentimento
+
+Classificação automática do humor do cliente durante a chamada (Positivo, Neutro, Negativo).
+
+Sistema (Auto)
+
+RF007
+
+Avaliação Automática
+
+A IA deve analisar a transcrição baseada nos critérios ativos e atribuir uma nota preliminar com justificativa.
+
+Sistema (Auto)
+
+📊 Módulo 3: Auditoria e Dashboards
+
+ID
+
+Requisito
+
+Descrição
+
+Ator
+
+RF008
+
+Interface de Revisão
+
+Player de áudio sincronizado com o texto transcrito, permitindo ao supervisor alterar a nota da IA e adicionar observações.
+
+Supervisor
+
+RF009
+
+Dashboard de Performance
+
+Gráficos exibindo evolução das notas, ranking de analistas e critérios com maior índice de falha.
+
+Supervisor
+
+RF010
+
+Histórico Pessoal
+
+O analista deve visualizar apenas as suas próprias avaliações e feedbacks.
+
+Analista
+
+3. Requisitos Não Funcionais (RNF)
+
+Restrições técnicas e atributos de qualidade.
+
+[RNF001] Processamento Assíncrono: O upload do áudio deve ser desacoplado do processamento. O usuário não deve esperar a IA terminar para continuar navegando (uso de Filas/Jobs).
+
+[RNF002] Armazenamento de Mídia: Arquivos de áudio não devem ser salvos no banco de dados (BLOB), mas sim em um Object Storage (S3, MinIO ou File System local), salvando apenas a referência (URL) no banco.
+
+[RNF003] Segurança de Dados: Senhas devem ser armazenadas com hash forte (BCrypt).
+
+[RNF004] Auditoria de Custos: O sistema deve registrar o consumo de tokens (entrada/saída) de cada chamada de API para controle financeiro.
+
+[RNF005] Stack Tecnológica:
+
+Backend: Java 17+ com Spring Boot 3.
+
+Database: MySQL 8.0 (via Docker).
+
+IA Integration: OpenAI API (Whisper + GPT-4o-mini/GPT-3.5).
+
+4. Regras de Negócio (RN)
+
+Lógica e restrições do domínio.
+
+[RN001] Hierarquia de Avaliação: A avaliação humana (Supervisor) é soberana. Se um supervisor editar uma nota dada pela IA, a nota do supervisor prevalece e o status muda para "Revisado".
+
+[RN002] Cálculo da Nota Final: A nota é uma média ponderada calculada pela fórmula:
 
 
-📋 Requisitos Funcionais (O que o sistema faz)
-Autenticação e RBAC (Role-Based Access Control):
+$$Nota = \frac{\sum (\text{Nota do Item} \times \text{Peso do Critério})}{\sum \text{Pesos dos Critérios}}$$
 
-O sistema deve ter login seguro (JWT).
+[RN003] Imutabilidade da Transcrição: O texto gerado pela IA (transcrição) não pode ser alterado manualmente para garantir a integridade da evidência, apenas a nota pode ser revista.
 
-Perfil Admin: Cria usuários e configura critérios.
+[RN004] Versionamento de Critérios: Alterações em critérios de avaliação (ex: mudar peso da "Saudação") aplicam-se apenas a novas avaliações. Avaliações passadas não são recalculadas.
 
-Perfil Supervisor: Sobe áudios, vê dashboards, corrige notas da IA.
+[RN005] Visibilidade de Dados:
 
-Perfil Analista: Vê apenas suas próprias avaliações.
+Analista: Vê apenas dados próprios.
 
-Pipeline de Processamento de Áudio:
+Supervisor: Vê dados de todos os analistas.
 
-Upload de arquivos .mp3 e .wav.
+Admin: Acesso total ao sistema e configurações.
 
-Validação de tamanho e formato.
+5. Arquitetura de Dados (Resumo)
 
-Envio para fila de processamento (para não travar o sistema).
+O banco de dados foi modelado para suportar a persistência dos resultados da IA e o controle de custos.
 
-Integração com IA (O Core):
+tb_usuario: Controle de acesso.
 
-Etapa 1: Transcrição (Speech-to-Text) - Converter áudio em texto.
+tb_ligacao: Metadados do áudio e transcrição longa (LONGTEXT).
 
-Etapa 2: Análise de Sentimento - Detectar se o cliente estava irritado.
+tb_avaliacao: Cabeçalho da nota e feedback geral.
 
-Etapa 3: Scoring Automático - Aplicar as regras de negócio sobre o texto.
+tb_item_avaliacao: Detalhe da nota por critério (com justificativa da IA).
 
-Gestão da Qualidade:
+tb_criterio: Regras parametrizáveis.
 
-Interface para o Supervisor ler a transcrição e ouvir o áudio simultaneamente.
+tb_log_uso_ia: Tabela de auditoria financeira (Tokens/Custo).
 
-Botão para "Recalcular" ou "Editar Nota" caso a IA tenha alucinado.
-
-⚙️ Requisitos Não Funcionais (Qualidade do sistema)
-Auditoria de Custos: Registrar quantos tokens (dinheiro) foram gastos em cada análise para evitar surpresas na fatura da OpenAI.
-
-Isolamento de Dados: O banco deve suportar Soft Delete (não apagar registros de verdade, apenas marcar como inativos) para histórico.
-
-Performance: O banco deve ter índices nas colunas de busca frequente (analista_id, data_criacao, sentimento).
-
-📏 Regras de Negócio (A Lógica)
-Cálculo da Nota: A nota vai de 0 a 100.
-
-Fórmula: (Soma dos Pontos Obtidos / Soma dos Pesos Possíveis) * 100.
-
-Imutabilidade do Áudio: Uma vez avaliado, o arquivo de áudio não pode ser substituído, apenas arquivado.
-
-Hierarquia de Avaliação: Uma nota dada manualmente por um Supervisor sempre sobrescreve a nota da IA.
+Documentação gerada para o projeto CallQuality AI.
