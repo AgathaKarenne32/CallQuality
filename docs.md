@@ -38,3 +38,53 @@ As restrições do negócio.
 [RN003] Critérios Dinâmicos: Uma alteração em um critério de avaliação só afeta avaliações futuras, não altera o histórico passado.
 
 [RN004] Pontuação: A nota final é uma média ponderada: (Soma das notas dos itens * peso) / Soma dos pesos.
+
+
+📋 Requisitos Funcionais (O que o sistema faz)
+Autenticação e RBAC (Role-Based Access Control):
+
+O sistema deve ter login seguro (JWT).
+
+Perfil Admin: Cria usuários e configura critérios.
+
+Perfil Supervisor: Sobe áudios, vê dashboards, corrige notas da IA.
+
+Perfil Analista: Vê apenas suas próprias avaliações.
+
+Pipeline de Processamento de Áudio:
+
+Upload de arquivos .mp3 e .wav.
+
+Validação de tamanho e formato.
+
+Envio para fila de processamento (para não travar o sistema).
+
+Integração com IA (O Core):
+
+Etapa 1: Transcrição (Speech-to-Text) - Converter áudio em texto.
+
+Etapa 2: Análise de Sentimento - Detectar se o cliente estava irritado.
+
+Etapa 3: Scoring Automático - Aplicar as regras de negócio sobre o texto.
+
+Gestão da Qualidade:
+
+Interface para o Supervisor ler a transcrição e ouvir o áudio simultaneamente.
+
+Botão para "Recalcular" ou "Editar Nota" caso a IA tenha alucinado.
+
+⚙️ Requisitos Não Funcionais (Qualidade do sistema)
+Auditoria de Custos: Registrar quantos tokens (dinheiro) foram gastos em cada análise para evitar surpresas na fatura da OpenAI.
+
+Isolamento de Dados: O banco deve suportar Soft Delete (não apagar registros de verdade, apenas marcar como inativos) para histórico.
+
+Performance: O banco deve ter índices nas colunas de busca frequente (analista_id, data_criacao, sentimento).
+
+📏 Regras de Negócio (A Lógica)
+Cálculo da Nota: A nota vai de 0 a 100.
+
+Fórmula: (Soma dos Pontos Obtidos / Soma dos Pesos Possíveis) * 100.
+
+Imutabilidade do Áudio: Uma vez avaliado, o arquivo de áudio não pode ser substituído, apenas arquivado.
+
+Hierarquia de Avaliação: Uma nota dada manualmente por um Supervisor sempre sobrescreve a nota da IA.
