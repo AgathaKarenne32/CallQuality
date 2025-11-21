@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub do Projeto - CallQuality AI</title>
+    <!-- 
+        Chosen Palette: Ardósia e Índigo (Calm Harmony)
+        Application Structure Plan: SPA com navegação superior (abas). JS alterna seções de conteúdo (Visão Geral, RFs, RNFs, etc.). Interação principal: filtro da tabela de RFs por "Ator" via dropdown. Visualização principal: Gráfico Donut (Chart.js) da contagem de RFs por ator e um diagrama de arquitetura de dados feito em HTML/Tailwind. Esta estrutura foi escolhida para permitir exploração não linear e drill-down, o que é mais útil para um stakeholder do que um documento linear.
+        Visualization & Content Choices: 
+        1. RFs (Contagem): Report Info -> Tabela de RFs por Ator. Goal -> Informar/Comparar. Method -> Gráfico Donut (Chart.js). Interaction -> Hover (tooltip). Justification -> Fornece um resumo visual imediato do escopo de trabalho por perfil de usuário.
+        2. RFs (Tabela): Report Info -> Tabela de RFs. Goal -> Explorar. Method -> Tabela HTML interativa. Interaction -> Filtro por "Ator" (JS). Justification -> Permite que um stakeholder (ex: dev front-end) filtre apenas os requisitos de um "Analista".
+        3. Arquitetura (Diagrama): Report Info -> Lista de tabelas. Goal -> Organizar/Relacionar. Method -> Diagrama customizado com HTML/Tailwind (boxes, bordas). Interaction -> N/A (visual). Justification -> Mais claro que uma lista, demonstra o fluxo de dados e substitui SVG/Mermaid (proibidos).
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilo para os contêineres de gráfico, conforme requisitado */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            /* Previne que o gráfico fique muito grande em desktops */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            /* Altura responsiva */
+            max-height: 400px;
+        }
+
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+                /* Altura menor em celulares */
+            }
+        }
+
+        /* Classe para o estado ativo da navegação */
+        .nav-button-active {
+            background-color: #eef2ff;
+            /* indigo-50 */
+            color: #4338ca;
+            /* indigo-700 */
+            font-weight: 600;
+        }
+
+        /* Estilos para o diagrama de arquitetura em HTML/Tailwind */
+        .db-table {
+            @apply bg-white shadow-md rounded-lg p-4 text-center border-l-4 border-indigo-500;
+        }
+
+        .db-connector {
+            @apply relative w-full h-8 border-l-2 border-slate-300;
+        }
+
+        .db-connector::after {
+            content: '';
+            @apply absolute -bottom-1 left-0 w-2 h-2 border-l-2 border-b-2 border-slate-300 transform -translate-x-[5px] rotate-45;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+
+    <div class="min-h-screen">
+        <!-- Cabeçalho e Título -->
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto px-4 py-5 md:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold text-indigo-700">📞 Hub do Projeto: CallQuality AI</h1>
+                <p class="mt-1 text-lg text-slate-600">Documentação de Requisitos Interativa</p>
+            </div>
+        </header>
+
+        <!-- Barra de Navegação -->
+        <nav class="bg-white sticky top-0 z-10 shadow-md">
+            <div class="container mx-auto px-4 md:px-6 lg:px-8">
+                <div class="flex flex-wrap -mx-1">
+                    <button data-target-id="overview"
+                        class="nav-button nav-button-active flex-auto px-4 py-3 m-1 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        Visão Geral
+                    </button>
+                    <button data-target-id="rf"
+                        class="nav-button flex-auto px-4 py-3 m-1 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        Funcionais (RF)
+                    </button>
+                    <button data-target-id="rnf"
+                        class="nav-button flex-auto px-4 py-3 m-1 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        Não Funcionais (RNF)
+                    </button>
+                    <button data-target-id="rn"
+                        class="nav-button flex-auto px-4 py-3 m-1 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        Regras de Negócio (RN)
+                    </button>
+                    <button data-target-id="data"
+                        class="nav-button flex-auto px-4 py-3 m-1 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        Arquitetura de Dados
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Área de Conteúdo Principal -->
+        <main class="container mx-auto p-4 md:p-6 lg:p-8">
+
+            <!-- Seção: Visão Geral -->
+            <section id="overview" class="content-section space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Sobre o Projeto</h2>
+                    <p class="text-slate-600 leading-relaxed">
+                        O **CallQuality AI** é uma plataforma Full Stack projetada para modernizar o setor de *Quality
+                        Assurance* (QA) em Call Centers. O sistema automatiza a avaliação de atendimentos telefônicos
+                        utilizando Inteligência Artificial Generativa, reduzindo o trabalho manual de supervisores e
+                        fornecendo *feedbacks* instantâneos e imparciais.
+                    </p>
+                    <p class="text-slate-600 leading-relaxed mt-2">
+                        O diferencial técnico reside na arquitetura híbrida: a IA realiza a triagem massiva e a
+                        transcrição (Speech-to-Text), enquanto o supervisor humano atua na validação e no *coaching* da
+                        equipe.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Seção: Requisitos Funcionais (RF) -->
+            <section id="rf" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex flex-wrap justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-indigo-700">Requisitos Funcionais (RF)</h2>
+                        <div class="w-full sm:w-auto mt-3 sm:mt-0">
+                            <label for="actor-filter" class="block text-sm font-medium text-slate-700 mb-1">Filtrar por
+                                Ator:</label>
+                            <select id="actor-filter"
+                                class="w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="all">Todos</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Supervisor">Supervisor</option>
+                                <option value="Analista">Analista</option>
+                                <option value="Sistema">Sistema (Auto)</option>
+                                <option value="Todos">Todos (Usuários)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 mb-6">
+                        Funcionalidades que o sistema disponibiliza aos usuários. Use o filtro para explorar os
+                        requisitos por perfil de usuário envolvido.
+                    </p>
+
+                    <!-- Gráfico de RFs por Ator -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-slate-800 text-center mb-3">RFs por Ator</h3>
+                        <div class="chart-container">
+                            <canvas id="rf-actor-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de RFs -->
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table id="rf-table" class="w-full min-w-[600px] table-auto">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        ID</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        Requisito</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        Descrição</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        Ator</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <!-- Módulo 1: Gestão e Acesso -->
+                                <tr class="rf-row" data-actor="Todos">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF001
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Autenticação e RBAC
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Login seguro via JWT com controle de
+                                        acesso...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Todos</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Admin">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF002
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Gestão de Usuários
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Cadastro, edição e inativação de
+                                        analistas...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Admin</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Supervisor">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF003
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Gestão de Critérios
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Interface para criar regras de
+                                        avaliação dinâmicas...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Supervisor</td>
+                                </tr>
+                                <!-- Módulo 2: Core & Processamento -->
+                                <tr class="rf-row" data-actor="Supervisor">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF004
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Upload de Áudio</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Envio de arquivos .mp3 ou .wav
+                                        associados...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Supervisor</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Sistema">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF005
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Transcrição (STT)
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Conversão automática do áudio em
+                                        texto...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Sistema (Auto)</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Sistema">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF006
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Análise de Sentimento
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Classificação automática do humor do
+                                        cliente...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Sistema (Auto)</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Sistema">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF007
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Avaliação Automática
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">A IA deve analisar a transcrição
+                                        baseada...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Sistema (Auto)</td>
+                                </tr>
+                                <!-- Módulo 3: Auditoria e Dashboards -->
+                                <tr class="rf-row" data-actor="Supervisor">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF008
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Interface de Revisão
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Player de áudio sincronizado com o
+                                        texto...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Supervisor</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Supervisor">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF009
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Dashboard de
+                                        Performance</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">Gráficos exibindo evolução das notas...
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Supervisor</td>
+                                </tr>
+                                <tr class="rf-row" data-actor="Analista">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">RF010
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">Histórico Pessoal
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">O analista deve visualizar apenas as
+                                        suas...</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">Analista</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção: Requisitos Não Funcionais (RNF) -->
+            <section id="rnf" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Requisitos Não Funcionais (RNF)</h2>
+                    <p class="text-slate-600 mb-6">Restrições técnicas e atributos de qualidade do sistema.</p>
+                    <ul class="list-disc list-outside space-y-3 pl-5 text-slate-700">
+                        <li>
+                            <strong class="font-semibold">[RNF001] Processamento Assíncrono:</strong> O upload do áudio
+                            deve ser desacoplado do processamento. O usuário não deve esperar a IA terminar para
+                            continuar navegando (uso de Filas/Jobs).
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RNF002] Armazenamento de Mídia:</strong> Arquivos de áudio
+                            **não** devem ser salvos no banco de dados (BLOB), mas sim em um *Object Storage* (S3, MinIO
+                            ou File System local), salvando apenas a referência (URL) no banco.
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RNF003] Segurança de Dados:</strong> Senhas devem ser
+                            armazenadas com hash forte (BCrypt).
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RNF004] Auditoria de Custos:</strong> O sistema deve
+                            registrar o consumo de tokens (entrada/saída) de cada chamada de API para controle
+                            financeiro.
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RNF005] Stack Tecnológica:</strong> Backend: Java 17+ com
+                            Spring Boot 3. Database: MySQL 8.0 (via Docker). IA Integration: OpenAI API (Whisper +
+                            GPT-4o-mini/GPT-3.5).
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Seção: Regras de Negócio (RN) -->
+            <section id="rn" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Regras de Negócio (RN)</h2>
+                    <p class="text-slate-600 mb-6">Lógica e restrições específicas do domínio do CallQuality.</p>
+                    <ul class="list-disc list-outside space-y-3 pl-5 text-slate-700">
+                        <li>
+                            <strong class="font-semibold">[RN001] Hierarquia de Avaliação:</strong> A avaliação humana
+                            (Supervisor) é soberana. Se um supervisor editar uma nota dada pela IA, a nota do supervisor
+                            prevalece e o status muda para "Revisado".
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RN002] Cálculo da Nota Final:</strong> A nota é uma média
+                            ponderada calculada pela fórmula: $Nota = \frac{\sum (\text{Nota do Item} \times \text{Peso
+                            do Critério})}{\sum \text{Pesos dos Critérios}}$
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RN003] Imutabilidade da Transcrição:</strong> O texto gerado
+                            pela IA (transcrição) não pode ser alterado manualmente para garantir a integridade da
+                            evidência, apenas a nota pode ser revista.
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RN004] Versionamento de Critérios:</strong> Alterações em
+                            critérios de avaliação (ex: mudar peso da "Saudação") aplicam-se apenas a novas avaliações.
+                            Avaliações passadas não são recalculadas.
+                        </li>
+                        <li>
+                            <strong class="font-semibold">[RN005] Visibilidade de Dados:</strong> Analista (vê apenas
+                            dados próprios), Supervisor (vê dados de todos os analistas), Admin (acesso total).
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Seção: Arquitetura de Dados -->
+            <section id="data" class="content-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-indigo-700 mb-3">Arquitetura de Dados</h2>
+                    <p class="text-slate-600 mb-6">Resumo das principais tabelas do banco de dados (MySQL) modeladas
+                        para suportar a IA e a auditoria de custos.</p>
+
+                    <!-- Diagrama de Arquitetura em HTML/Tailwind -->
+                    <div class="space-y-4">
+                        <div class="db-table">
+                            <span class="font-bold">`tb_usuario`</span>
+                            <p class="text-sm text-slate-600">Controla acesso (Admin, Supervisor, Analista)</p>
+                        </div>
+
+                        <div class="pl-10">
+                            <div class="db-connector"></div>
+                            <div class="db-table">
+                                <span class="font-bold">`tb_ligacao`</span>
+                                <p class="text-sm text-slate-600">Metadados do áudio e transcrição (LONGTEXT)</p>
+                            </div>
+                        </div>
+
+                        <div class="pl-20">
+                            <div class="db-connector"></div>
+                            <div class="db-table">
+                                <span class="font-bold">`tb_avaliacao`</span>
+                                <p class="text-sm text-slate-600">Cabeçalho da nota e feedback geral (IA ou Manual)</p>
+                            </div>
+                        </div>
+
+                        <div class="pl-32">
+                            <div class="db-connector"></div>
+                            <div class="db-table">
+                                <span class="font-bold">`tb_item_avaliacao`</span>
+                                <p class="text-sm text-slate-600">Detalhe da nota por critério (com justificativa da IA)
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Tabelas de suporte (paralelas) -->
+                        <div class="pt-4">
+                            <div class="db-table">
+                                <span class="font-bold">`tb_criterio`</span>
+                                <p class="text-sm text-slate-600">Regras e pesos parametrizáveis</p>
+                            </div>
+                        </div>
+                        <div class="pt-4">
+                            <div class="db-table">
+                                <span class="font-bold">`tb_log_uso_ia`</span>
+                                <p class="text-sm text-slate-600">Auditoria financeira (Tokens/Custo)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="text-center py-6 text-slate-500 text-sm">
+        SPA de Documentação do Projeto CallQuality AI
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // --- 1. Lógica de Navegação por Abas ---
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-target-id');
+
+                    // Esconde todas as seções
+                    contentSections.forEach(section => {
+                        section.classList.add('hidden');
+                    });
+
+                    // Mostra a seção alvo
+                    document.getElementById(targetId).classList.remove('hidden');
+
+                    // Atualiza o estado ativo dos botões
+                    navButtons.forEach(btn => {
+                        btn.classList.remove('nav-button-active');
+                    });
+                    button.classList.add('nav-button-active');
+                });
+            });
+
+            // --- 2. Lógica do Filtro da Tabela de RFs ---
+            const actorFilter = document.getElementById('actor-filter');
+            const rfTableRows = document.querySelectorAll('#rf-table tbody tr.rf-row');
+
+            actorFilter.addEventListener('change', () => {
+                const selectedActor = actorFilter.value;
+
+                rfTableRows.forEach(row => {
+                    const rowActor = row.getAttribute('data-actor');
+
+                    if (selectedActor === 'all' || rowActor === selectedActor || (selectedActor === 'Todos' && (rowActor === 'Admin' || rowActor === 'Supervisor' || rowActor === 'Analista'))) {
+                        row.style.display = ''; // Mostra a linha
+                    } else {
+                        row.style.display = 'none'; // Esconde a linha
+                    }
+                });
+            });
+
+            // --- 3. Lógica do Gráfico (Chart.js) ---
+            // Dados extraídos da tabela de RFs do relatório
+            const rfCounts = {
+                'Supervisor': 4, // RF003, RF004, RF008, RF009
+                'Sistema': 3,    // RF005, RF006, RF007
+                'Admin': 1,      // RF002
+                'Analista': 1,   // RF010
+                'Todos': 1       // RF001
+            };
+
+            // Vamos somar "Todos" aos 3 perfis de usuário para o gráfico
+            const chartData = {
+                labels: ['Supervisor', 'Sistema (Auto)', 'Admin', 'Analista'],
+                datasets: [{
+                    label: 'Número de Requisitos',
+                    data: [
+                        rfCounts['Supervisor'] + rfCounts['Todos'],
+                        rfCounts['Sistema'],
+                        rfCounts['Admin'] + rfCounts['Todos'],
+                        rfCounts['Analista'] + rfCounts['Todos']
+                    ],
+                    backgroundColor: [
+                        '#6366f1', // indigo-600
+                        '#64748b', // slate-500
+                        '#ef4444', // red-500
+                        '#22c55e'  // green-500
+                    ],
+                    borderColor: '#f8fafc', // slate-50
+                    borderWidth: 3,
+                    hoverOffset: 4
+                }]
+            };
+
+            const ctx = document.getElementById('rf-actor-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Permite que o CSS controle a altura/largura
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    family: 'sans-serif',
+                                    size: 14
+                                },
+                                color: '#334155' // slate-700
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    let label = context.label || '';
+                                    let value = context.raw;
+                                    return `${label}: ${value} requisitos`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        });
+    </script>
+
+</body>
+
+</html>
