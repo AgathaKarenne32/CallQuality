@@ -47,33 +47,40 @@ CREATE TABLE tb_ligacao (
     FOREIGN KEY (analista_id) REFERENCES tb_usuario(id)
 );
 
--- 4. AVALIAÇÕES (O Boletim)
+-- 4. AVALIAÇÕES 
 CREATE TABLE tb_avaliacao (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     ligacao_id BIGINT NOT NULL,
-    supervisor_id BIGINT, -- Se NULL, foi avaliação automática pura
+    supervisor_id BIGINT, 
     
-    nota_final DECIMAL(5,2), -- 0.00 a 100.00
+    nota_final DECIMAL(5,2), 
     feedback_geral TEXT,
     
     origem_avaliacao ENUM('IA', 'MANUAL_SUPERVISOR') NOT NULL,
+    
+    -- NOVO CAMPO: Controla o ciclo de vida da avaliação
+    status_avaliacao ENUM('DISPONIVEL_PARA_REVISAO', 'REVISADO', 'FINALIZADO') DEFAULT 'DISPONIVEL_PARA_REVISAO',
+    
     data_avaliacao DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (ligacao_id) REFERENCES tb_ligacao(id),
     FOREIGN KEY (supervisor_id) REFERENCES tb_usuario(id)
 );
 
--- 5. DETALHE DA AVALIAÇÃO (Nota item a item)
+-- 5. DETALHE DA AVALIAÇÃO 
 CREATE TABLE tb_item_avaliacao (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     avaliacao_id BIGINT NOT NULL,
-    criterio_id BIGINT NOT NULL,
     
-    -- Resultado
-    cumpriu_requisito BOOLEAN, -- Sim/Não
+    -- Mantemos a FK para saber a origem, mas ela pode ser Nullable caso o critério seja deletado fisicamente (opcional)
+    criterio_id BIGINT, 
+    
+    -- SNAPSHOT: Copiamos estes dados da tb_criterio no momento da inserção
+    nome_criterio_snapshot VARCHAR(255) NOT NULL, 
+    peso_snapshot INT NOT NULL, 
+    
+    cumpriu_requisito BOOLEAN,
     nota_atribuida DECIMAL(5,2),
-    
-    -- Explicação (Fundamental para a IA justificar a nota)
     justificativa_ia TEXT, 
     
     FOREIGN KEY (avaliacao_id) REFERENCES tb_avaliacao(id),
