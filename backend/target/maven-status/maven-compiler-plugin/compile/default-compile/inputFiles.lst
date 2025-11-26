@@ -4,6 +4,7 @@
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/repository/ItemAvaliacaoRepository.java
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/controller/CriterioController.java
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/controller/TesteController.java
+/workspaces/CallQuality/backend/src/main/java/com/callquality/api/config/WebConfig.java
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/controller/LigacaoController.java
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/controller/UsuarioController.java
 /workspaces/CallQuality/backend/src/main/java/com/callquality/api/repository/UsuarioRepository.java
