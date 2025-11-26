@@ -8,9 +8,11 @@ com/callquality/api/CallQualityApplication.class
 com/callquality/api/model/ItemAvaliacao.class
 com/callquality/api/controller/CriterioController.class
 com/callquality/api/controller/UsuarioController.class
+com/callquality/api/config/WebConfig.class
 com/callquality/api/repository/AvaliacaoRepository.class
 com/callquality/api/model/Avaliacao.class
 com/callquality/api/repository/CriterioRepository.class
+com/callquality/api/CallQualityApplication$1.class
 com/callquality/api/repository/UsuarioRepository.class
 com/callquality/api/repository/ItemAvaliacaoRepository.class
 com/callquality/api/model/OrigemAvaliacao.class

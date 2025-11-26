@@ -2,6 +2,7 @@ package com.callquality.api.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore; // <--- Importante!
 import java.math.BigDecimal;
 
 @Data
@@ -13,6 +14,7 @@ public class ItemAvaliacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore // <--- A CORREÇÃO: Quebra o loop infinito
     @ManyToOne
     @JoinColumn(name = "avaliacao_id", nullable = false)
     private Avaliacao avaliacao;
@@ -21,7 +23,6 @@ public class ItemAvaliacao {
     @JoinColumn(name = "criterio_id")
     private Criterio criterio;
 
-    // SNAPSHOT: Cópia dos dados originais para histórico
     @Column(name = "nome_criterio_snapshot")
     private String nomeCriterioSnapshot;
 

@@ -29,13 +29,13 @@ public class Avaliacao {
     @Column(name = "feedback_geral", columnDefinition = "TEXT")
     private String feedbackGeral;
 
-    @Enumerated(EnumType.STRING) // <--- AQUI ESTAVA O ERRO (Agora está certo)
+    @Enumerated(EnumType.STRING)
     @Column(name = "origem_avaliacao")
-    private OrigemAvaliacao origemAvaliacao; 
+    private OrigemAvaliacao origemAvaliacao;
 
     @Column(name = "data_avaliacao")
     private LocalDateTime dataAvaliacao = LocalDateTime.now();
-    
-    @OneToMany(mappedBy = "avaliacao", cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "avaliacao", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<ItemAvaliacao> itens;
 }
