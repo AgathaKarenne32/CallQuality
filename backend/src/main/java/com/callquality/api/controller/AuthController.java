@@ -1,17 +1,14 @@
 package com.callquality.api.controller;
 
 import com.callquality.api.dto.LoginDTO;
-import com.callquality.api.model.Usuario;
 import com.callquality.api.repository.UsuarioRepository;
 import com.callquality.api.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -26,22 +23,27 @@ public class AuthController {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping("/login")
     @Operation(summary = "Realizar Login", description = "Retorna um Token JWT se as credenciais estiverem corretas.")
     public ResponseEntity login(@RequestBody LoginDTO dados) {
+        // Busca usuário
         var usuario = repository.findByEmail(dados.email())
                 .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
 
-        if (!usuario.getSenha().equals(dados.senha())) {
-            return ResponseEntity.status(403).body("Senha invalida");
+        // Valida senha criptografada
+        if (!passwordEncoder.matches(dados.senha(), usuario.getSenha())) {
+            return ResponseEntity.status(403).body("Credenciais inválidas");
         }
 
+        // Gera token
         var tokenJwt = tokenService.gerarToken(usuario);
 
         return ResponseEntity.ok(Map.of(
-            "token", tokenJwt,
-            "nome", usuario.getNome(),
-            "perfil", usuario.getPerfil()
-        ));
+                "token", tokenJwt,
+                "nome", usuario.getNome(),
+                "perfil", usuario.getPerfil()));
     }
 }
