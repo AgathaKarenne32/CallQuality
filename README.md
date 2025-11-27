@@ -117,3 +117,71 @@ O Backend foi construído utilizando **Java** com **Spring Boot**, seguindo uma 
    \`\`\`
 3. Acesse a Documentação (Swagger):
    \`http://localhost:8081/swagger-ui/index.html\`
+
+
+Novas implementações, que pretendo seguir agora, após concluir o mvp.
+
+**Roadmap de Evolução** serveria para desenhar e para transformar o **CallQuality AI** em um produto de mercado (SaaS).
+
+Divido em 3 pilares: **Técnico (Backend)**, **Funcional (Produto)** e **Visual (UX/UI)**.
+
+
+### 1. 🧠 Evolução Técnica (Backend & Infra)
+
+O seu backend está sólido, mas ele roda em modo "Simulação". O próximo passo é torná-lo real.
+
+* **A. Integração Real com OpenAI (Fim do Mock):**
+    * **O que fazer:** Substituir os `Thread.sleep` do `ProcessamentoIAService`.
+    * **Como:**
+        1.  Usar a API **Whisper** (da OpenAI) para enviar o arquivo de áudio e receber o texto real.
+        2.  Enviar o texto para o **GPT-4o** com um *System Prompt* contendo os critérios que cadastramos no banco.
+        3.  Fazer o Java ler o JSON de resposta da OpenAI e salvar as notas reais.
+    * *Impacto:* O sistema deixa de ser um brinquedo e passa a analisar chamadas de verdade.
+
+* **B. Armazenamento de Arquivos (Object Storage):**
+    * **O que fazer:** Hoje salvamos um caminho falso (`s3://fake...`). Precisamos salvar o arquivo físico.
+    * **Como:** Integrar com **MinIO** (que é um clone do S3 que roda no Docker de graça) ou **AWS S3** (se tiver conta na AWS).
+    * *Impacto:* O usuário poderá dar "Play" no áudio e ouvir a gravação de verdade.
+
+* **C. Notificações em Tempo Real (Websockets):**
+    * **O que fazer:** Substituir o `setInterval` de 5 segundos no Frontend (que fica "perguntando" pro servidor se acabou).
+    * **Como:** Usar **Spring Websocket**. O servidor avisa o navegador: *"Ei, acabei a análise #15!"* e o Frontend atualiza na hora.
+    * *Impacto:* Performance e experiência de uso instantânea.
+
+---
+
+### 2. 🛡️ Evolução de Segurança (O "Cadeado")
+
+O README menciona JWT e RBAC, mas ainda não implementamos o bloqueio de rotas.
+
+* **A. Spring Security + JWT:**
+    * **O que fazer:** Criar o endpoint `/auth/login`. Quando o usuário logar, recebe um Token.
+    * **Proteção:** Ninguém pode chamar `/ligacoes/upload` sem enviar esse token no cabeçalho.
+    * *Impacto:* Segurança obrigatória para qualquer software comercial.
+
+* **B. Diferenciação de Perfis (RBAC):**
+    * **O que fazer:**
+        * **Analista:** Só vê as *suas* ligações.
+        * **Supervisor:** Vê tudo e pode criar critérios.
+    * *Impacto:* Permite vender o software para empresas grandes com hierarquia.
+
+---
+
+### 3. ✨ Evolução de Produto & UX (Frontend)
+
+Aqui é onde o usuário "brilha os olhos".
+
+* **A. Player de Áudio com Onda (Waveform):**
+    * **Ideia:** Em vez de um player padrão do navegador, usar uma biblioteca como `wavesurfer.js`.
+    * **Visual:** Mostrar o desenho da onda sonora.
+    * **Funcionalidade:** Quando clicar em uma frase na transcrição, o áudio pula para aquele segundo exato. (Isso é o "estado da arte" em ferramentas de transcrição).
+
+* **B. Módulo de Contestação:**
+    * **Cenário:** A IA deu nota baixa injustamente.
+    * **Funcionalidade:** O Analista clica num botão "Contestar Avaliação", escreve o motivo, e o Supervisor recebe um alerta para reavaliar manualmente.
+
+* **C. Comparativo de Períodos:**
+    * **No Dashboard:** Um gráfico mostrando "Esta semana" vs "Semana passada".
+    * *Impacto:* Gestão de performance.
+
+---
