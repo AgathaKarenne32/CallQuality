@@ -14,68 +14,92 @@ public class ProcessamentoIAService {
 
     @Autowired
     private LigacaoRepository ligacaoRepository;
-    
+
     @Autowired
     private AvaliacaoRepository avaliacaoRepository;
-    
+
     @Autowired
     private CriterioRepository criterioRepository;
-    
+
     @Autowired
     private ItemAvaliacaoRepository itemRepository;
+
+    @Autowired
+    private HuggingFaceService iaReal; // <--- Nossa nova integração
 
     @Async
     public void iniciarAnalise(Long ligacaoId) {
         try {
             atualizarStatus(ligacaoId, StatusProcessamento.TRANSCRICAO_EM_ANDAMENTO);
-            System.out.println("🎙️ [IA] Transcrevendo ligação " + ligacaoId + "...");
-            Thread.sleep(2000); 
+            System.out.println("🎙️ [Mock] Transcrevendo ligação " + ligacaoId + "...");
+            Thread.sleep(2000);
+
+            // Vamos usar um texto fixo que varia um pouco para testar a IA
+            // Num futuro passo, isso viria do Whisper
+            String textoTranscrito = "O cliente estava muito irritado e reclamou do serviço. O atendente tentou acalmar mas não conseguiu.";
+            if (ligacaoId % 2 == 0) {
+                textoTranscrito = "O atendimento foi excelente! O problema foi resolvido rapidamente e o cliente agradeceu muito.";
+            }
 
             atualizarStatus(ligacaoId, StatusProcessamento.ANALISE_IA_EM_ANDAMENTO);
-            System.out.println("🧠 [IA] Calculando notas e regras...");
-            Thread.sleep(2000); 
+            System.out.println("🧠 [HuggingFace] Enviando texto para análise real...");
 
-            // Finaliza a Ligação
+            // --- CHAMADA REAL PARA A API ---
+            String sentimentoReal = iaReal.analisarSentimento(textoTranscrito);
+            System.out.println("🤖 IA Decidiu: " + sentimentoReal);
+
+            // Salva no banco
             Ligacao ligacao = ligacaoRepository.findById(ligacaoId).get();
-            ligacao.setTranscricaoCompleta("Atendente: Olá. Cliente: Cancelar. Atendente: Ok.");
-            ligacao.setSentimento(Sentimento.NEUTRO);
+            ligacao.setTranscricaoCompleta(textoTranscrito);
+
+            // Converte String para Enum (com segurança)
+            try {
+                ligacao.setSentimento(Sentimento.valueOf(sentimentoReal));
+            } catch (Exception e) {
+                ligacao.setSentimento(Sentimento.NEUTRO);
+            }
+
             ligacao.setStatus(StatusProcessamento.CONCLUIDO);
             ligacaoRepository.save(ligacao);
-            
-            // --- GERA A AVALIAÇÃO AUTOMÁTICA ---
-            gerarAvaliacaoFake(ligacao);
 
-            System.out.println("✅ [IA] Processamento concluído com SUCESSO!");
+            // Gera avaliação baseada no sentimento real
+            gerarAvaliacao(ligacao, sentimentoReal);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private void gerarAvaliacaoFake(Ligacao ligacao) {
+    private void gerarAvaliacao(Ligacao ligacao, String sentimento) {
         Avaliacao avaliacao = new Avaliacao();
         avaliacao.setLigacao(ligacao);
-        
-        // CORREÇÃO AQUI: Usando o Enum
         avaliacao.setOrigemAvaliacao(OrigemAvaliacao.IA);
-        
-        avaliacao.setFeedbackGeral("O atendente seguiu o script.");
-        avaliacao.setNotaFinal(new BigDecimal("85.0")); 
-        
+
+        // Nota baseada no sentimento real da IA
+        if ("POSITIVO".equals(sentimento)) {
+            avaliacao.setNotaFinal(new BigDecimal("95.0"));
+            avaliacao.setFeedbackGeral("IA detectou alta satisfação no texto.");
+        } else if ("NEGATIVO".equals(sentimento)) {
+            avaliacao.setNotaFinal(new BigDecimal("40.0"));
+            avaliacao.setFeedbackGeral("IA detectou insatisfação ou conflito.");
+        } else {
+            avaliacao.setNotaFinal(new BigDecimal("75.0"));
+            avaliacao.setFeedbackGeral("Atendimento padrão, sem destaques.");
+        }
+
         avaliacao = avaliacaoRepository.save(avaliacao);
-        
+
+        // Itens (Simplificado para o exemplo)
         List<Criterio> criterios = criterioRepository.findAll();
-        
         for (Criterio crit : criterios) {
             ItemAvaliacao item = new ItemAvaliacao();
             item.setAvaliacao(avaliacao);
             item.setCriterio(crit);
             item.setNomeCriterioSnapshot(crit.getDescricao());
             item.setPesoSnapshot(crit.getPeso());
-            item.setCumpriuRequisito(true);
+            item.setCumpriuRequisito(!sentimento.equals("NEGATIVO"));
             item.setNotaAtribuida(new BigDecimal("10.0"));
-            item.setJustificativaIa("Conforme regra.");
-            
+            item.setJustificativaIa("Análise automática via LLM.");
             itemRepository.save(item);
         }
     }
