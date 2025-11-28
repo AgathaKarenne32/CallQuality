@@ -1,119 +1,85 @@
-# 📞 CallQuality AI - Documentação do Projeto
+# 📞 CallQuality AI - Backend API
 
-## 1. Visão Geral do Projeto
+O **CallQuality AI** é uma solução de software *Full Stack* desenvolvida para revolucionar o departamento de Garantia de Qualidade (QA) em Call Centers.
 
-O **CallQuality AI** é uma solução de software *Full Stack* desenvolvida para revolucionar o departamento de Garantia de Qualidade (QA) em centros de atendimento (*Call Centers*). O objetivo principal da plataforma é substituir processos manuais, lentos e baseados em folhas de cálculo, por um sistema centralizado e inteligente.
+Este repositório contém o **Backend (API RESTful)** responsável por orquestrar o processamento de áudio, integração com Inteligência Artificial e gestão de dados.
 
-A inovação central do projeto reside na sua arquitetura híbrida de avaliação: o sistema utiliza **Inteligência Artificial Generativa** para realizar a triagem massiva, transcrição e pré-avaliação de 100% das chamadas, enquanto os supervisores humanos atuam de forma estratégica, validando as notas e focando no *coaching* (treino) dos analistas. Isso garante escala na análise sem perder a nuance da supervisão humana.
-
----
-
-## 2. Requisitos Funcionais (O que o sistema faz)
-
-Esta secção detalha as funcionalidades que estarão disponíveis para os utilizadores finais (Administradores, Supervisores e Analistas).
-
-### 🔐 Módulo de Acesso e Gestão
-
-* **Autenticação e Controle de Acesso (RBAC):** O sistema deve possuir um login seguro utilizando o padrão JWT (*JSON Web Token*). O acesso às funcionalidades será restrito com base no perfil do utilizador:
-    * **Administrador:** Acesso total.
-    * **Supervisor:** Gestão de equipa e avaliações.
-    * **Analista:** Visualização pessoal.
-* **Gestão de Usuários:** O perfil Administrador deve ter permissão para registar novos utilizadores, editar informações, inativar contas e redefinir senhas, garantindo a manutenção da base de colaboradores.
-* **Parametrização de Critérios:** O sistema deve permitir que Supervisores criem e editem critérios de qualidade dinâmicos (exemplo: "Empatia", "Clareza", "Resolução"). Cada critério deve possuir um peso específico, permitindo que a empresa ajuste o rigor da avaliação conforme a necessidade do negócio.
-
-### 🧠 Módulo Core (Processamento e IA)
-
-* **Upload e Gestão de Áudio:** O sistema deve permitir o envio de ficheiros de áudio (formatos `.mp3` e `.wav`) associados a um analista específico. O sistema deve validar automaticamente o formato e o tamanho do ficheiro antes de iniciar o processamento.
-* **Transcrição Automática (Speech-to-Text):** Após o upload, o sistema deve converter automaticamente todo o conteúdo falado no áudio para texto estruturado, utilizando uma API de IA de alta precisão.
-* **Análise de Sentimento:** O sistema deve ser capaz de analisar o texto transcrito e classificar o sentimento predominante do cliente durante a interação (**Positivo**, **Neutro** ou **Negativo**), servindo como um indicador de satisfação.
-* **Avaliação Automatizada:** Com base na transcrição e nos critérios configurados, a IA deve realizar uma avaliação preliminar, atribuindo uma nota para cada item e gerando uma justificativa em texto para a pontuação atribuída.
-
-### 📊 Módulo de Auditoria e Visualização
-
-* **Interface de Revisão:** O Supervisor deve ter acesso a uma interface que combine o *player* de áudio e o texto transcrito. Nesta tela, ele deve poder validar ou alterar as notas sugeridas pela IA e adicionar *feedbacks* manuais textuais para o analista.
-* **Dashboards de Desempenho:** O sistema deve gerar gráficos visuais que mostrem a evolução das notas ao longo do tempo, o ranking dos melhores analistas e, crucialmente, quais critérios de qualidade estão a ser mais infringidos pela equipa.
-* **Portal do Analista:** O analista deve ter uma visão restrita onde pode consultar o seu próprio histórico de avaliações, ler os *feedbacks* recebidos e ouvir as suas próprias chamadas avaliadas para fins de auto-aprendizagem.
+🔗 **Frontend Repository:** [CallQuality-Web](https://github.com/AgathaKarenne32/CallQuality---frontend)
 
 ---
 
-## 3. Requisitos Não Funcionais (Como o sistema opera)
+## 🚀 Status do Desenvolvimento (MVP Entregue)
 
-Esta secção define as restrições técnicas, padrões de qualidade e arquitetura que suportam o sistema.
+O projeto atingiu o estágio de **MVP Funcional e Seguro**. As seguintes funcionalidades já estão implementadas e operacionais:
 
-* **Processamento Assíncrono e Filas:** Dado que a transcrição de áudio e a análise de IA são processos demorados, estas tarefas não devem bloquear a navegação do utilizador. O sistema deve utilizar filas de processamento para que o utilizador possa continuar a navegar enquanto o *backend* processa os arquivos em segundo plano.
-* **Estratégia de Armazenamento (Storage):** Para garantir a performance da base de dados, os arquivos de áudio binários não devem ser armazenados diretamente nas tabelas. Devem ser guardados num sistema de ficheiros ou serviço de armazenamento em nuvem (*Object Storage*), guardando na base de dados apenas o caminho (*link*) para o ficheiro.
-* **Segurança da Informação:** Todas as senhas dos utilizadores devem ser armazenadas na base de dados utilizando algoritmos de *hash* fortes (como BCrypt), garantindo que nem mesmo os administradores tenham acesso às senhas originais.
-* **Auditoria de Custos de API:** O sistema deve registar o consumo de *tokens* (unidade de custo das IAs Generativas) de cada operação realizada. Isso é essencial para monitorizar os custos operacionais da ferramenta e evitar gastos excessivos com as APIs de terceiros.
-* **Stack Tecnológica Definida:**
-    * **Backend:** Java 21 com Spring Boot 3.2.
-    * **Database:** MySQL 8.0 (via Docker).
-    * **IA Integration:** OpenAI APIs (Modelos Whisper e GPT).
+### ✅ Segurança & Autenticação
+* **Login JWT:** Sistema completo de emissão e validação de tokens.
+* **Criptografia:** Senhas salvas com Hash BCrypt (padrão de mercado).
+* **RBAC (Controle de Acesso):**
+    * Rotas públicas: Login e Documentação.
+    * Rotas protegidas: Upload, Listagem e Configurações.
+    * Isolamento de Dados: Analistas veem apenas suas próprias ligações.
 
----
+### 🧠 Inteligência Artificial (Real)
+* **Integração Groq (Llama 3):** Substituímos o mock inicial por chamadas reais a uma LLM de ponta via API.
+* **Resiliência (Fallback):** Se a API da IA falhar ou a chave for inválida, o sistema ativa automaticamente um modo de análise local baseada em palavras-chave, garantindo que o processo nunca trave.
 
-## 4. Regras de Negócio (Lógica e Restrições)
-
-Estas são as leis que regem o comportamento do sistema e a tomada de decisão.
-
-1.  **Soberania da Avaliação Humana:** Embora a IA realize a avaliação inicial, a nota atribuída por um Supervisor humano é sempre a final. Se um Supervisor alterar uma nota dada pela IA, o sistema deve considerar a nota humana como a verdade absoluta e alterar o estado da avaliação para "Revisado".
-2.  **Cálculo de Nota Ponderada:** A nota final de um atendimento não é uma média aritmética simples. Ela deve ser calculada através de uma média ponderada, onde critérios mais importantes (com peso maior) influenciam mais o resultado final.
-    * *Fórmula:* `(Soma das Notas dos Itens × Peso do Critério) / Soma Total dos Pesos`.
-3.  **Imutabilidade da Evidência:** O texto transcrito pela IA é considerado uma evidência do atendimento e não pode ser editado manualmente. Apenas as notas e os comentários de avaliação podem ser alterados.
-4.  **Versionamento de Critérios:** Se um critério de avaliação for alterado ou removido pelo administrador, essa mudança só deve afetar avaliações futuras. O histórico de avaliações passadas deve permanecer intacto, preservando as regras que estavam vigentes na data daquela avaliação (Padrão Snapshot).
-5.  **Privacidade e Visibilidade:** Um Analista nunca pode visualizar as avaliações, notas ou áudios de outros colegas. A sua visão é estritamente limitada aos seus próprios dados. Supervisores e Administradores têm visão global.
+### ⚙️ Arquitetura Técnica
+* **Processamento Assíncrono:** Uploads não bloqueiam o servidor. A análise roda em threads separadas (`@Async`).
+* **Banco de Dados:** MySQL 8.0 rodando em Docker com migrations automáticas pelo Hibernate.
+* **API Documentation:** Swagger UI configurado e seguro (suporta Bearer Token).
 
 ---
 
-## 5. Arquitetura do Backend (Implementação Técnica)
-
-O Backend foi construído utilizando **Java** com **Spring Boot**, seguindo uma arquitetura em camadas (Layered Architecture) para garantir a separação de responsabilidades e facilitar a manutenção.
-
-### 🏗️ Estrutura e Decisões Técnicas
-
-#### 1. API RESTful com Spring Web
-* **O que é:** O ponto de entrada da aplicação.
-* **Por que usamos:** Para expor os dados (Usuários, Ligações, Avaliações) de forma padronizada (JSON) para que qualquer Frontend (React, Mobile, etc.) possa consumir.
-* **Componentes:** `Controllers` que recebem as requisições HTTP e devolvem as respostas.
-
-#### 2. Persistência de Dados (Spring Data JPA + MySQL)
-* **O que é:** A camada que conversa com o Banco de Dados.
-* **Por que usamos:** O JPA abstrai a complexidade do SQL. Criamos "Entidades" (Classes Java) que espelham as tabelas. Isso nos permite trocar de banco no futuro se necessário e evita erros manuais de SQL.
-* **Destaque:** Implementação do padrão *Snapshot* na tabela `tb_item_avaliacao` para garantir a regra de versionamento de critérios.
-
-#### 3. Motor de Processamento Assíncrono (@Async)
-* **O que é:** A capacidade do sistema realizar tarefas em "segundo plano".
-* **Por que usamos:** A transcrição de áudio e a análise de IA são processos lentos (podem levar minutos). Se fizéssemos isso de forma síncrona, o navegador do usuário ficaria "congelado" esperando.
-* **Como funciona:** Quando o usuário faz Upload, o servidor responde imediatamente "Recebido" (Status: PENDENTE) e libera o usuário. Uma *thread* separada assume o processamento pesado, atualizando o status para CONCLUIDO quando terminar.
-
-#### 4. Camada de Serviço (Service Layer)
-* **O que é:** O cérebro da aplicação.
-* **Por que usamos:** Para isolar a Regra de Negócio. O Controller apenas recebe dados, o Repository apenas salva dados. Quem calcula a média ponderada, chama a IA e define se a ligação foi boa ou ruim é o Service. Isso facilita os testes unitários.
-
-#### 5. Documentação Viva (Swagger/OpenAPI)
-* **O que é:** Uma interface visual gerada automaticamente.
-* **Por que usamos:** Permite testar a API sem precisar escrever código de Frontend. A documentação se atualiza sozinha sempre que alteramos o código Java, garantindo que nunca fique obsoleta.
-
-#### 6. Robustez com Testes (JUnit + MockMvc)
-* **O que é:** Robôs que testam o código.
-* **Por que usamos:** Criamos testes de integração que simulam o envio de um arquivo real para garantir que o fluxo de Upload -> Banco -> Resposta nunca pare de funcionar, mesmo após alterações futuras.
-
----
-
-## 6. Como Executar o Backend
+## 🛠️ Como Executar Localmente
 
 ### Pré-requisitos
-* Docker e Docker Compose
-* Java 17 ou superior (ou use o Codespaces)
+* Docker & Docker Compose
+* Java 17+
+* Maven
 
-### Passos
-1. Suba o banco de dados:
-   ```bash
-   docker-compose up -d
-   ```
-2. Inicie a aplicação:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-3. Acesse a Documentação (Swagger):
-   `http://localhost:8081/swagger-ui/index.html`
+### 1. Subir o Banco de Dados
+```bash
+docker-compose up -d
+```
+
+### 2. Configurar a Chave da IA (Opcional)
+Para usar a IA real (Groq), exporte sua chave. Se não fizer isso, o sistema usará o Fallback Local.
+```bash
+export GROQ_API_KEY=gsk_sua_chave_aqui
+```
+
+### 3. Iniciar o Backend
+```bash
+mvn spring-boot:run
+```
+A API estará disponível em: `http://localhost:8081`
+
+### 4. Acessar Documentação (Swagger)
+Abra no navegador: [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html)
+
+---
+
+## 🔮 Roadmap de Evolução (Próximos Passos)
+
+Para transformar este MVP em um produto SaaS Enterprise, os próximos passos planejados são:
+
+### 1. 🧠 Evolução Técnica (Infra)
+* [ ] **Armazenamento S3/MinIO:** Salvar os arquivos de áudio fisicamente em Object Storage para permitir o "Play" real no frontend.
+* [ ] **Websockets:** Substituir o polling do frontend por notificações em tempo real quando a análise concluir.
+
+### 2. ✨ Evolução de Produto (UX)
+* [ ] **Player Waveform:** Visualização da onda sonora sincronizada com a transcrição.
+* [ ] **Módulo de Contestação:** Fluxo para analistas discordarem da nota da IA e solicitarem revisão humana.
+* [ ] **Dashboard Gerencial:** Gráficos comparativos de performance entre equipes e períodos (Semanal/Mensal).
+
+---
+
+## 📐 Regras de Negócio Implementadas
+
+1.  **Imutabilidade Histórica:** Implementamos o padrão *Snapshot* na tabela de itens de avaliação. Se um critério mudar de peso hoje, as avaliações passadas não são alteradas.
+2.  **Isolamento de Tenant:** O endpoint `/ligacoes` detecta o perfil do usuário logado e filtra os dados automaticamente (Analista vs Admin).
+
+---
+
+Desenvolvido por **Agatha Karenne** como portfólio de Engenharia de Software Full Stack.
