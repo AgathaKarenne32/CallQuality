@@ -21,9 +21,15 @@ public class CriterioController {
     }
 
     @PostMapping
-    // AQUI ESTÁ A TRANCA 🔒
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
     public Criterio criar(@RequestBody Criterio criterio) {
         return repository.save(criterio);
+    }
+
+    // --- NOVO MÉTODO DE EXCLUSÃO ---
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')") // Só a Agatha pode deletar!
+    public void excluir(@PathVariable Long id) {
+        repository.deleteById(id);
     }
 }
