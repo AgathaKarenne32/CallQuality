@@ -8,12 +8,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
@@ -35,16 +36,14 @@ public class SecurityFilter extends OncePerRequestFilter {
             if (!emailSubject.isEmpty()) {
                 var usuario = usuarioRepository.findByEmail(emailSubject).orElseThrow();
 
-                // Cria a autenticação do Spring (considerando todos como user comum por
-                // enquanto)
-                var authentication = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());
+                // AQUI MUDOU: Transformamos o ENUM (Ex: ADMIN) em ROLE_ADMIN para o Spring
+                // entender
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil().name()));
 
-                // Salva no contexto "O usuário está logado!"
+                var authentication = new UsernamePasswordAuthenticationToken(usuario, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
-
-        // Segue o fluxo (vai para o Controller ou é barrado se não tiver autenticação)
         filterChain.doFilter(request, response);
     }
 

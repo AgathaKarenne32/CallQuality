@@ -29,21 +29,19 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Realizar Login", description = "Retorna um Token JWT se as credenciais estiverem corretas.")
     public ResponseEntity login(@RequestBody LoginDTO dados) {
-        // Busca usuário
         var usuario = repository.findByEmail(dados.email())
                 .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
 
-        // Valida senha criptografada
         if (!passwordEncoder.matches(dados.senha(), usuario.getSenha())) {
             return ResponseEntity.status(403).body("Credenciais inválidas");
         }
 
-        // Gera token
         var tokenJwt = tokenService.gerarToken(usuario);
 
         return ResponseEntity.ok(Map.of(
-                "token", tokenJwt,
-                "nome", usuario.getNome(),
-                "perfil", usuario.getPerfil()));
+            "token", tokenJwt,
+            "nome", usuario.getNome(),
+            "perfil", usuario.getPerfil()
+        ));
     }
 }

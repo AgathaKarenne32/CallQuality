@@ -15,8 +15,10 @@ import java.time.ZoneOffset;
 @Service
 public class TokenService {
 
-    // Em produção, isso viria de uma variável de ambiente
-    private String secret = "minha-palavra-secreta-super-dificil";
+    // Lê do application.properties. Se não achar, usa o valor padrão (seguro apenas
+    // para dev)
+    @Value("${api.security.token.secret:${JWT_SECRET:segredo-padrao-dev}}")
+    private String secret;
 
     public String gerarToken(Usuario usuario) {
         try {
@@ -40,7 +42,7 @@ public class TokenService {
                     .verify(tokenJWT)
                     .getSubject();
         } catch (JWTVerificationException exception) {
-            return ""; // Token inválido
+            return "";
         }
     }
 
