@@ -2,9 +2,11 @@ package com.callquality.api.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Importante
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Data // O Lombok cria os Getters, Setters e toString automaticamente
+@Data
 @Entity
 @Table(name = "tb_usuario")
 public class Usuario {
@@ -19,10 +21,11 @@ public class Usuario {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @JsonIgnore // Esconde a senha
     @Column(name = "senha_hash", nullable = false)
     private String senha;
 
-    @Enumerated(EnumType.STRING) // Salva como texto ("ADMIN") no banco
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Perfil perfil;
 
@@ -30,4 +33,15 @@ public class Usuario {
 
     @Column(name = "data_criacao", updatable = false)
     private LocalDateTime dataCriacao = LocalDateTime.now();
+
+    // --- HIERARQUIA ---
+    
+    @ManyToOne
+    @JoinColumn(name = "supervisor_id")
+    @JsonIgnore // Ignora o chefe na visualização
+    private Usuario supervisor;
+
+    @OneToMany(mappedBy = "supervisor", fetch = FetchType.LAZY)
+    @JsonIgnore // <--- A CORREÇÃO: O Java NÃO vai tentar buscar a lista sozinho
+    private List<Usuario> liderados;
 }

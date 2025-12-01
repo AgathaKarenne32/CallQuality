@@ -3,6 +3,7 @@ package com.callquality.api.controller;
 import com.callquality.api.model.Usuario;
 import com.callquality.api.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +19,16 @@ public class UsuarioController {
 
     @GetMapping
     public List<Usuario> listarTodos() {
-        // Isso vai fazer um "SELECT * FROM tb_usuario" automaticamente!
         return repository.findAll();
+    }
+
+    // --- NOVO ENDPOINT: MINHA EQUIPE ---
+    @GetMapping("/minha-equipe")
+    public List<Usuario> listarMinhaEquipe() {
+        // Pega o usuário logado do Token
+        Usuario logado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        // Busca quem tem o ID dele como supervisor_id
+        return repository.findBySupervisorId(logado.getId());
     }
 }
