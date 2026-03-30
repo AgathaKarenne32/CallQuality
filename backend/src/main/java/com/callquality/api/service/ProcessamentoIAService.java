@@ -85,6 +85,11 @@ public class ProcessamentoIAService {
             System.err.println("❌ Erro no processamento: " + e.getMessage());
             atualizarStatus(ligacaoId, StatusProcessamento.ERRO);
         }
+
+        @Autowired
+        private SimpMessagingTemplate messagingTemplate;
+
+        messagingTemplate.convertAndSend("/topic/analise", "Concluído: " + ligacaoId);
     }
 
     private String transcreverComWhisper(InputStream audio, String fileName) {
@@ -151,3 +156,11 @@ public class ProcessamentoIAService {
         });
     }
 }
+
+LogUsoIA log = new LogUsoIA();
+log.setLigacao(ligacao);
+log.setServicoUsado("OpenAI-Whisper / Groq-Llama3");
+log.setTokensEntrada(tokensIn); 
+log.setTokensSaida(tokensOut);
+log.setCustoEstimadoUsd(calculaCusto(tokensIn, tokensOut));
+logIARepository.save(log);

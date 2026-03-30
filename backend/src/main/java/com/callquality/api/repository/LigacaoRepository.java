@@ -9,4 +9,9 @@ import java.util.List;
 public interface LigacaoRepository extends JpaRepository<Ligacao, Long> {
     // Busca personalizada
     List<Ligacao> findByAnalistaId(Long analistaId);
+
+@Query("SELECT l FROM Ligacao l WHERE l.analista.supervisor.id = :supervisorId")
+    List<Ligacao> findBySupervisorId(@Param("supervisorId") Long supervisorId);
 }
+
+

@@ -40,8 +40,11 @@ public class LigacaoController {
             return repository.findByAnalistaId(usuarioLogado.getId());
         }
 
-        // Se for Admin ou Supervisor, vê tudo
-        return repository.findAll();
+        if (usuarioLogado.getPerfil() == Perfil.SUPERVISOR) {
+            return repository.findBySupervisorId(usuarioLogado.getId());
+        }
+
+        return repository.findAll(); // ADMIN vê tudo
     }
 
     @Autowired
