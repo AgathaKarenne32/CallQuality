@@ -71,3 +71,29 @@ public Ligacao upload(@RequestParam("arquivo") MultipartFile arquivo,
 
     return salva;
 }
+
+@GetMapping("/{id}/audio")
+public ResponseEntity<Resource> extrairAudio(@PathVariable Long id) {
+    // 1. Busca a ligação no banco
+    Ligacao ligacao = repository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ligação não encontrada"));
+
+    // 2. Recupera o InputStream do MinIO via S3Client
+    try {
+        software.amazon.awssdk.core.ResponseInputStream<software.amazon.awssdk.services.s3.model.GetObjectResponse> s3Object = 
+            s3Client.getObject(software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                .bucket("callquality-audios")
+                .key(ligacao.getBucketPath())
+                .build());
+
+        InputStreamResource resource = new InputStreamResource(s3Object);
+
+        // 3. Retorna o áudio com o cabeçalho correto para o player do navegador
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("audio/mpeg"))
+                .body(resource);
+
+    } catch (Exception e) {
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao recuperar áudio do storage");
+    }
+}
