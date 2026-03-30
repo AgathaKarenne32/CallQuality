@@ -44,27 +44,30 @@ public class LigacaoController {
         return repository.findAll();
     }
 
-    @PostMapping("/upload")
-    public Ligacao upload(@RequestParam("arquivo") MultipartFile arquivo,
-            @RequestParam("idAnalista") Long idAnalista) {
+    @Autowired
+private StorageService storageService; // Adicione esta dependência
 
-        Usuario analista = usuarioRepository.findById(idAnalista)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analista não encontrado"));
+@PostMapping("/upload")
+public Ligacao upload(@RequestParam("arquivo") MultipartFile arquivo,
+        @RequestParam("idAnalista") Long idAnalista) {
 
-        Ligacao novaLigacao = new Ligacao();
-        novaLigacao.setAnalista(analista);
-        novaLigacao.setNomeArquivoOriginal(arquivo.getOriginalFilename());
-        novaLigacao.setTamanhoBytes(arquivo.getSize());
-        String caminhoFalso = "s3://callquality-bucket/" + System.currentTimeMillis() + "_"
-                + arquivo.getOriginalFilename();
-        novaLigacao.setBucketPath(caminhoFalso);
-        novaLigacao.setDataAtendimento(LocalDateTime.now());
-        novaLigacao.setDuracaoSegundos(180);
-        novaLigacao.setClienteIdentificador("CLIENTE-MOCK");
+    Usuario analista = usuarioRepository.findById(idAnalista)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analista não encontrado"));
 
-        Ligacao salva = repository.save(novaLigacao);
-        iaService.iniciarAnalise(salva.getId());
+    // UPLOAD REAL
+    String nomeNoStorage = storageService.uploadFile(arquivo);
 
-        return salva;
-    }
+    Ligacao novaLigacao = new Ligacao();
+    novaLigacao.setAnalista(analista);
+    novaLigacao.setNomeArquivoOriginal(arquivo.getOriginalFilename());
+    novaLigacao.setTamanhoBytes(arquivo.getSize());
+    novaLigacao.setBucketPath(nomeNoStorage); // Guarda o nome real do ficheiro no MinIO
+    novaLigacao.setDataAtendimento(LocalDateTime.now());
+    novaLigacao.setDuracaoSegundos(180);
+    novaLigacao.setClienteIdentificador("CLIENTE-IDENTIFICADO");
+
+    Ligacao salva = repository.save(novaLigacao);
+    iaService.iniciarAnalise(salva.getId());
+
+    return salva;
 }
