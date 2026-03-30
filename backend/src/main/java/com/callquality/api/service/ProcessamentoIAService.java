@@ -3,11 +3,21 @@ package com.callquality.api.service;
 import com.callquality.api.model.*;
 import com.callquality.api.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ProcessamentoIAService {
@@ -25,34 +35,40 @@ public class ProcessamentoIAService {
     private ItemAvaliacaoRepository itemRepository;
 
     @Autowired
-    private HuggingFaceService iaReal; // <--- Nossa nova integração
+    private HuggingFaceService iaReal;
+
+    @Autowired
+    private S3Client s3Client;
+
+    @Value("${storage.s3.bucket-name}")
+    private String bucketName;
+
+    @Value("${openai.api.key}")
+    private String openAiKey;
 
     @Async
     public void iniciarAnalise(Long ligacaoId) {
         try {
-            atualizarStatus(ligacaoId, StatusProcessamento.TRANSCRICAO_EM_ANDAMENTO);
-            System.out.println("🎙️ [Mock] Transcrevendo ligação " + ligacaoId + "...");
-            Thread.sleep(2000);
+            Ligacao ligacao = ligacaoRepository.findById(ligacaoId)
+                    .orElseThrow(() -> new RuntimeException("Ligação não encontrada"));
 
-            // Vamos usar um texto fixo que varia um pouco para testar a IA
-            // Num futuro passo, isso viria do Whisper
-            String textoTranscrito = "O cliente estava muito irritado e reclamou do serviço. O atendente tentou acalmar mas não conseguiu.";
-            if (ligacaoId % 2 == 0) {
-                textoTranscrito = "O atendimento foi excelente! O problema foi resolvido rapidamente e o cliente agradeceu muito.";
-            }
+            atualizarStatus(ligacaoId, StatusProcessamento.TRANSCRICAO_EM_ANDAMENTO);
+
+            // 1. RECUPERAR ÁUDIO DO MINIO
+            InputStream audioStream = s3Client.getObject(GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(ligacao.getBucketPath())
+                    .build());
+
+            // 2. CHAMADA AO WHISPER (Transcrição Real)
+            String textoTranscrito = transcreverComWhisper(audioStream, ligacao.getNomeArquivoOriginal());
 
             atualizarStatus(ligacaoId, StatusProcessamento.ANALISE_IA_EM_ANDAMENTO);
-            System.out.println("🧠 [HuggingFace] Enviando texto para análise real...");
 
-            // --- CHAMADA REAL PARA A API ---
+            // 3. ANÁLISE DE SENTIMENTO (Via Groq/Llama)
             String sentimentoReal = iaReal.analisarSentimento(textoTranscrito);
-            System.out.println("🤖 IA Decidiu: " + sentimentoReal);
 
-            // Salva no banco
-            Ligacao ligacao = ligacaoRepository.findById(ligacaoId).get();
             ligacao.setTranscricaoCompleta(textoTranscrito);
-
-            // Converte String para Enum (com segurança)
             try {
                 ligacao.setSentimento(Sentimento.valueOf(sentimentoReal));
             } catch (Exception e) {
@@ -62,12 +78,34 @@ public class ProcessamentoIAService {
             ligacao.setStatus(StatusProcessamento.CONCLUIDO);
             ligacaoRepository.save(ligacao);
 
-            // Gera avaliação baseada no sentimento real
+            // 4. GERAR AVALIAÇÃO COM CÁLCULO PONDERADO
             gerarAvaliacao(ligacao, sentimentoReal);
 
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("❌ Erro no processamento: " + e.getMessage());
+            atualizarStatus(ligacaoId, StatusProcessamento.ERRO);
         }
+    }
+
+    private String transcreverComWhisper(InputStream audio, String fileName) {
+        if (openAiKey.contains("chave-nao-configurada")) {
+            return "[Mock] Transcrição simulada: O atendimento foi produtivo e o problema resolvido.";
+        }
+
+        RestClient restClient = RestClient.builder().build();
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("file", new InputStreamResource(audio)).filename(fileName);
+        bodyBuilder.part("model", "whisper-1");
+
+        Map response = restClient.post()
+                .uri("https://api.openai.com/v1/audio/transcriptions")
+                .header("Authorization", "Bearer " + openAiKey)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(bodyBuilder.build())
+                .retrieve()
+                .body(Map.class);
+
+        return (String) response.get("text");
     }
 
     private void gerarAvaliacao(Ligacao ligacao, String sentimento) {
@@ -75,40 +113,41 @@ public class ProcessamentoIAService {
         avaliacao.setLigacao(ligacao);
         avaliacao.setOrigemAvaliacao(OrigemAvaliacao.IA);
 
-        // Nota baseada no sentimento real da IA
-        if ("POSITIVO".equals(sentimento)) {
-            avaliacao.setNotaFinal(new BigDecimal("95.0"));
-            avaliacao.setFeedbackGeral("IA detectou alta satisfação no texto.");
-        } else if ("NEGATIVO".equals(sentimento)) {
-            avaliacao.setNotaFinal(new BigDecimal("40.0"));
-            avaliacao.setFeedbackGeral("IA detectou insatisfação ou conflito.");
-        } else {
-            avaliacao.setNotaFinal(new BigDecimal("75.0"));
-            avaliacao.setFeedbackGeral("Atendimento padrão, sem destaques.");
-        }
+        List<Criterio> criterios = criterioRepository.findByAtivoTrue();
+        BigDecimal somaNotasPesadas = BigDecimal.ZERO;
+        int somaPesos = 0;
 
         avaliacao = avaliacaoRepository.save(avaliacao);
 
-        // Itens (Simplificado para o exemplo)
-        List<Criterio> criterios = criterioRepository.findAll();
         for (Criterio crit : criterios) {
             ItemAvaliacao item = new ItemAvaliacao();
             item.setAvaliacao(avaliacao);
             item.setCriterio(crit);
             item.setNomeCriterioSnapshot(crit.getDescricao());
             item.setPesoSnapshot(crit.getPeso());
-            item.setCumpriuRequisito(!sentimento.equals("NEGATIVO"));
-            item.setNotaAtribuida(new BigDecimal("10.0"));
-            item.setJustificativaIa("Análise automática via LLM.");
+
+            boolean cumpriu = !sentimento.equals("NEGATIVO");
+            item.setCumpriuRequisito(cumpriu);
+            BigDecimal notaItem = cumpriu ? new BigDecimal("10.0") : BigDecimal.ZERO;
+            item.setNotaAtribuida(notaItem);
+            item.setJustificativaIa("Análise baseada no sentimento predominante.");
+            
             itemRepository.save(item);
+
+            somaNotasPesadas = somaNotasPesadas.add(notaItem.multiply(new BigDecimal(crit.getPeso())));
+            somaPesos += crit.getPeso();
+        }
+
+        if (somaPesos > 0) {
+            avaliacao.setNotaFinal(somaNotasPesadas.divide(new BigDecimal(somaPesos), 2, RoundingMode.HALF_UP));
+            avaliacaoRepository.save(avaliacao);
         }
     }
 
     private void atualizarStatus(Long id, StatusProcessamento status) {
-        Ligacao lig = ligacaoRepository.findById(id).orElse(null);
-        if (lig != null) {
+        ligacaoRepository.findById(id).ifPresent(lig -> {
             lig.setStatus(status);
             ligacaoRepository.save(lig);
-        }
+        });
     }
 }
