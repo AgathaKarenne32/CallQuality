@@ -157,6 +157,15 @@ public class ProcessamentoIAService {
     }
 }
 
+@Autowired
+private LogIARepository logRepository;
+
+@Autowired
+private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+
+long tempoFim = System.currentTimeMillis();
+
 LogUsoIA log = new LogUsoIA();
 log.setLigacao(ligacao);
 log.setServicoUsado("OpenAI-Whisper / Groq-Llama3");
@@ -164,3 +173,5 @@ log.setTokensEntrada(tokensIn);
 log.setTokensSaida(tokensOut);
 log.setCustoEstimadoUsd(calculaCusto(tokensIn, tokensOut));
 logIARepository.save(log);
+
+messagingTemplate.convertAndSend("/topic/analise", ligacaoId);
